@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-
-import '../../core/dbhelper.dart';
+import 'package:provider/provider.dart';
 import '../../model/asset_model.dart';
+import '../../provider/asset_edit_provider.dart';
 
 class EditAssetPage extends StatefulWidget {
-  final int id;  // Change to int for asset ID
+  final int id;
   final String initialName;
   final String initialType;
   final String initialDescription;
@@ -23,24 +23,15 @@ class EditAssetPage extends StatefulWidget {
 }
 
 class _EditAssetPageState extends State<EditAssetPage> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _typeController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  String _availability = '';
-
   @override
   void initState() {
     super.initState();
-    _nameController.text = widget.initialName;
-    _typeController.text = widget.initialType;
-    _descriptionController.text = widget.initialDescription;
-    _availability = widget.initialAvailability;
-  }
-
-  void _handleAvailabilityChange(String? value) {
-    setState(() {
-      _availability = value!;
-    });
+    // Initialize the provider values
+    final assetEditProvider = Provider.of<AssetEditProvider>(context, listen: false);
+    assetEditProvider.name = widget.initialName;
+    assetEditProvider.type = widget.initialType;
+    assetEditProvider.description = widget.initialDescription;
+    assetEditProvider.availability = widget.initialAvailability;
   }
 
   @override
@@ -49,57 +40,74 @@ class _EditAssetPageState extends State<EditAssetPage> {
       appBar: AppBar(
         title: Text('Edit Asset'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: 'Asset Name'),
-            ),
-            TextField(
-              controller: _typeController,
-              decoration: InputDecoration(labelText: 'Asset Type'),
-            ),
-            TextField(
-              controller: _descriptionController,
-              decoration: InputDecoration(labelText: 'Description'),
-              maxLines: 3,
-            ),
-            Row(
+      body: Consumer<AssetEditProvider>(
+        builder: (context, assetEditProvider, child) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               children: [
-                Text('Availability:'),
-                Radio<String>(
-                  value: 'Available',
-                  groupValue: _availability,
-                  onChanged: _handleAvailabilityChange,
+                TextField(
+                  controller: TextEditingController(text: assetEditProvider.name),
+                  onChanged: (value) {
+                    assetEditProvider.name = value;
+                  },
+                  decoration: InputDecoration(labelText: 'Asset Name'),
                 ),
-                Text('Available'),
-                Radio<String>(
-                  value: 'Not Available',
-                  groupValue: _availability,
-                  onChanged: _handleAvailabilityChange,
+                TextField(
+                  controller: TextEditingController(text: assetEditProvider.type),
+                  onChanged: (value) {
+                    assetEditProvider.type = value;
+                  },
+                  decoration: InputDecoration(labelText: 'Asset Type'),
                 ),
-                Text('Not Available'),
+                TextField(
+                  controller: TextEditingController(text: assetEditProvider.description),
+                  onChanged: (value) {
+                    assetEditProvider.description = value;
+                  },
+                  decoration: InputDecoration(labelText: 'Description'),
+                  maxLines: 3,
+                ),
+                Row(
+                  children: [
+                    Text('Availability:'),
+                    Radio<String>(
+                      value: 'Available',
+                      groupValue: assetEditProvider.availability,
+                      onChanged: (value) {
+                        assetEditProvider.availability = value!;
+                      },
+                    ),
+                    Text('Available'),
+                    Radio<String>(
+                      value: 'Not Available',
+                      groupValue: assetEditProvider.availability,
+                      onChanged: (value) {
+                        assetEditProvider.availability = value!;
+                      },
+                    ),
+                    Text('Not Available'),
+                  ],
+                ),
+                if (assetEditProvider.isLoading) CircularProgressIndicator(),
+                if (assetEditProvider.errorMessage.isNotEmpty)
+                  Text(
+                    'Error: ${assetEditProvider.errorMessage}',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await assetEditProvider.updateAsset(widget.id);
+                    if (!assetEditProvider.isLoading) {
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: Text('Update Asset'),
+                ),
               ],
             ),
-            ElevatedButton(
-              onPressed: () async {
-                // Correct the issue by passing the `id` as an int
-                Asset updatedAsset = Asset(
-                  id: widget.id, // Pass the `id` from the constructor
-                  name: _nameController.text,
-                  type: _typeController.text,
-                  description: _descriptionController.text,
-                  availability: _availability,
-                );
-                await DatabaseHelper.instance.update(updatedAsset);
-                Navigator.pop(context);
-              },
-              child: Text('Update Asset'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
