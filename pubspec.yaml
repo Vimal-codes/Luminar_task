@@ -12,7 +12,8 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  sqflite: ^2.4.1  # Ensure you're using this, not sqflite_common_ffi
+  sqflite: ^2.4.1
+  provider: ^6.1.2
 
 
 dev_dependencies:
